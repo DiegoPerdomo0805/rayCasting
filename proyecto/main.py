@@ -8,7 +8,7 @@
 import pygame
 from OpenGL.GL import *
 from random import randint
-from GOL import GameOfLife
+from GOL import GameOfLife, get_neighbours
 import time
 
 
@@ -20,9 +20,9 @@ import time
 
 
 
-WIDTH = 30#640
-HEIGHT = 30#480
-SCALE = 5
+WIDTH = 20#640
+HEIGHT = 20#480
+SCALE = 10
 
 
 pygame.init()
@@ -85,14 +85,11 @@ g = GameOfLife(WIDTH, HEIGHT)
 #GameOfLife.get_neighbours
 #print(g.get_grid())
 GRID = g.get_grid()
-for e in GRID:
-    print(e)
 
 #print(GRID)
 
-#for e in GRID:
-#    print(e)
 
+#print(GRID)
 running = True
 while running:
 #game of life
@@ -103,26 +100,29 @@ while running:
     FUTURE_GRID = g.get_old_grid()
 
     #determinar el futuro estado del gird y las células
-    #for i in range(WIDTH):
-    #    for j in range(HEIGHT):
-     #
-      #      temp =g.get_neighbours(i, j)
-       #     if GRID[i][j] == 1:
-        #        #color = [255, 255, 255]
-         #       if temp < 2:
-          #          FUTURE_GRID[i][j] = 0
-           #     elif temp > 3:
-            #        FUTURE_GRID[i][j] = 0
-             #   else:
-              #      FUTURE_GRID[i][j] = 1
-            #else:
-             #   if temp == 3:
-              #      FUTURE_GRID[i][j] = 1
-               # else:
-                #    FUTURE_GRID[i][j] = 0
-                 #color = [0, 0, 0]
+    for i in range(WIDTH):
+        for j in range(HEIGHT):
+            temp = get_neighbours(i, j, GRID)
+            if GRID[i][j] == 1:
+                #color = [255, 255, 255]
+                #time.sleep(0.5)
+                #print("viva ->  ", temp, "  ", i, "  ", j)
+                if temp < 2:
+                    FUTURE_GRID[i][j] = 0
+                elif temp > 3:
+                    FUTURE_GRID[i][j] = 0
+                else:
+                    FUTURE_GRID[i][j] = 1
+            else:
+                #time.sleep(0.5)
+                #print("muerta ->  ", temp, "  ", i, "  ", j)
+                if temp == 3:
+                    FUTURE_GRID[i][j] = 1
+                else:
+                    FUTURE_GRID[i][j] = 0
+                color = [0, 0, 0]
 
-    time.sleep(0.1)
+    time.sleep(1)
     #Pintar el estado inicial del grid
     for i in range(WIDTH):
         for j in range(HEIGHT):
@@ -134,10 +134,11 @@ while running:
             color = convert(color)
             pixel(i, j, color)
 
+    GRID = FUTURE_GRID
     #flip the screen
     pygame.display.flip()
     #Cambiar el estado del grid al futuro estado
-    GRID = FUTURE_GRID
+    
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False

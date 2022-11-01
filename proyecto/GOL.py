@@ -12,10 +12,11 @@ class GameOfLife:
         return [[0 for _ in range(self.cols)] for _ in range(self.rows)]
     
     def configure_cells(self):
-        self.grid[20][20] = 1
-        self.grid[20][21] = 1
-        self.grid[21][21] = 1
-        self.grid[21][20] = 1
+        self.grid[9][10] = 1
+        self.grid[10+0][10+0] = 1
+        self.grid[10+0][10+1] = 1
+        self.grid[10+1][10+0] = 1
+        self.grid[10+1][10+1] = 1
         #self.grid[80][80] = 1
         #self.grid[80][81] = 1
         #self.grid[81][81] = 1
@@ -49,9 +50,14 @@ class GameOfLife:
     def get_old_grid(self):
         return deepcopy(self.grid)
 
-def get_neighbors(grid):
-    neighbors = []
-    for i in range(len(grid)):
-        for j in range(len(grid[i])):
-            neighbors.append((i, j, grid[i][j]))
+def get_neighbours(row, col, grid):
+    neighbors = 0
+    for i in range(row-1, row+2):
+        for j in range(col-1, col+2):
+            if i == row and j == col:
+                continue
+            elif i >= 0 and i < len(grid) and j >= 0 and j < len(grid[0]):
+                if grid[i][j] == 1:
+                    #print('i: ', i, 'j: ', j)
+                    neighbors += 1
     return neighbors
