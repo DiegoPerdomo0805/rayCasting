@@ -12,19 +12,19 @@ class GameOfLife:
         return [[0 for _ in range(self.cols)] for _ in range(self.rows)]
     
     def configure_cells(self):
-        self.grid[9][10] = 1
-        self.grid[10+0][10+0] = 1
-        self.grid[10+0][10+1] = 1
-        self.grid[10+1][10+0] = 1
-        self.grid[10+1][10+1] = 1
+        #self.grid[9][10] = 1
+        ##self.grid[10+0][10+0] = 1
+        ##self.grid[10+0][10+1] = 1
+        ##self.grid[10+1][10+0] = 1
+        #self.grid[10+1][10+1] = 1
         #self.grid[80][80] = 1
         #self.grid[80][81] = 1
         #self.grid[81][81] = 1
         #self.grid[81][80] = 1
-        #for i in range(self.rows):
-        #    for j in range(self.cols):
-        #        if randint(0,6) == 6:
-        #            self.grid[i][j] = 1
+        for i in range(self.rows):
+            for j in range(self.cols):
+                if randint(0,6) == 6:
+                    self.grid[i][j] = 1
     
     #def get_neighbours(self, row, col):
         #neighbours = 0
