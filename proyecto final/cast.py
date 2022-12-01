@@ -10,8 +10,8 @@ SKY = (255, 0, 0)
 GROUND = (200, 200, 100)
 
 walls = {
-    "1": pygame.image.load("assets/wall1.png"),
-    "2": pygame.image.load("assets/wall2.png"),
+    "1": pygame.image.load("./proyecto final/assets/wall1.png"),
+    #"2": pygame.image.load("assets/wall2.png"),
 }
 
 #sprite1 = pygame.image.load("assets/sprite1.png")
@@ -39,7 +39,7 @@ walls = {
 class RayCaster(object):
     def __init__(self, screen):
         pygame.init()
-        self.screen = pygame.display.set_mode(screen)
+        self.screen = screen#pygame.display.set_mode(screen)
         _, _, self.width, self.height = screen.get_rect()
         self.blocksize = 50
         self.map = []
@@ -49,21 +49,32 @@ class RayCaster(object):
             'angle': 0,
             'fov': math.pi / 3
         }
+        self.zbuffer = [-float('inf') for z in range(self.width)]
         #self.zbuffer = [-float('inf') for z in range(0, self.width, 2)]
         #self.clear()
 
     def clear(self):
         for x in range(self.width):
             for y in range(self.height):
-                self.point(x, y, BLACK)
+                r = int((x / self.width) * 255 if x / self.width < 1 else 1)
+                g = int((y / self.height) * 255 if y / self.height < 1 else 1)
+                b = 0
+                c = (r, g, b)
+                self.point(x, y, c)
 
     def point(self, x, y, c = WHITE):
+        #print(x, y, c)
         self.screen.set_at((x, y), c)
 
-    def block(self, x, y, c = WHITE):
+    def block(self, x, y, w):
         for i in range(x, x + self.blocksize):
             for j in range(y, y + self.blocksize):
-                self.point(i, j, c)
+                tx = int((i - x) / self.blocksize * w.get_width())
+                ty = int((j - y) / self.blocksize * w.get_height())
+                c = w.get_at((tx, ty))
+                if c != TRANSPARENT:
+                    self.point(i, j, c)
+                #self.point(i, j, c)
         #pygame.draw.rect(self.screen, c, (x, y, self.blocksize, self.blocksize), 1)
 
     def load_map(self, path):
@@ -73,8 +84,12 @@ class RayCaster(object):
     def draw_map(self):
         for x in range(len(self.map)):
             for y in range(self.map[x].__len__()):
-                wall = self.map[x][y]
-                self.block(y * self.blocksize, x * self.blocksize, walls[wall])
+                if self.map[x][y] != ' ':
+                    if self.map[x][y] == '\n':
+                        #print(x*50, y*50)
+                        self.block(x * self.blocksize,  y * self.blocksize  , walls[self.map[x][y]])
+                ##wall = self.map[x][y]
+                ##self.block(y * self.blocksize, x * self.blocksize, walls[wall])
                 #if self.map[y // self.blocksize][x // self.blocksize] == ' ':
                 #    self.block(x, y, BLACK)
         #for i, line in enumerate(self.map):
@@ -120,21 +135,44 @@ class RayCaster(object):
             y = self.player['y'] + d * math.sin(a)
             i = int(y // self.blocksize)
             j = int(x // self.blocksize)
+            #print(i, j)
             if self.map[i][j] != ' ':
                 hitx = x - j * self.blocksize
                 hity = y - i * self.blocksize
-                maxhit = self.blocksize * math.sqrt(2)
-                if hitx > hity:
-                    offset = maxhit - hitx
+
+                if 1 < hitx < self.blocksize - 1:
+                    maxhit = hitx
                 else:
-                    offset = maxhit - hity
-                return d + offset, self.map[i][j]
-            self.point(x, y)
+                    maxhit = hity
+
+                tx = int(maxhit / self.blocksize * walls[self.map[i][j]].get_width())
+
+                return d, self.map[i][j], tx
+                #maxhit = self.blocksize * math.sqrt(2)
+                #if hitx > hity:
+                #    offset = maxhit - hitx
+                #else:
+                #    offset = maxhit - hity
+                #return d + offset, self.map[i][j]
+            self.point(int(x), int(y))
             d += 1
 
-    def drawStake(self, x, h, c):
+    def drawStake(self, x, h, tx, texture):
+        #print(x, h, c)
+        #print(x, h, c)
+        y_o = int(self.height / 2 - h / 2)
+        y_f = int(self.height / 2 + h / 2)
         for y in range(h):
+            #self.point(x, y, c)
+            ty = int((y - y_o) / (y_f - y_o)) 
+            #c = texture.get_at((tx, ty))
+            print(tx, ty)
+            print(walls)
+            print(texture)
+            c = walls[texture].get_at((tx, ty))
             self.point(x, y, c)
+            
+
     
     def move(self, direction, speed=7):
         if direction == 'forward':
@@ -148,6 +186,26 @@ class RayCaster(object):
         elif direction == 'left':
             self.player['angle'] -= 0.1
         
+
+    def render(self):
+        print(walls)
+        self.clear()
+        self.draw_map()
+        #for sprite in sprites:
+        #    self.draw_sprite(sprite)
+        #self.draw_player()
+        for x in range(0, self.width, 2):
+            #a = self.player['angle'] - self.player['fov'] / 2 + x / self.width * self.player['fov']
+            a = self.player['angle'] - self.player['fov'] / 2 + self.player['fov'] * x / self.width
+            d, c, tx = self.cast_ray(a)
+            _x_ = self.width + x
+            cos_ = math.cos(a - self.player['angle'])
+            h = int(500/d * cos_) * self.blocksize
+            #h = self.height / d
+            self.drawStake(x, h, tx, walls[c])
+            #self.zbuffer[x // 2] = d
+        pygame.display.flip()
+    
     #def cast_ray(self, x, y, angle):
     #    for i in range(1000):
     #        dx = math.cos(angle) * i
@@ -181,15 +239,27 @@ class RayCaster(object):
 
 
 #pygame.init()
-screen = (800, 600)
+screen = pygame.display.set_mode((600, 600))
 r = RayCaster(screen)
 #clock = pygame.time.Clock()
-r.load_map('map.txt')
+r.load_map('./proyecto final/assets/map.txt')
 
 running = True
 while running:
     
     screen.fill(BLACK)
-    r.draw_map()
-    pygame.display.flip()
+    r.render()
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_w:
+                r.move('forward')
+            if event.key == pygame.K_s:
+                r.move('backward')
+            if event.key == pygame.K_a:
+                r.move('left')
+            if event.key == pygame.K_d:
+                r.move('right')
     #clock.tick(60)
