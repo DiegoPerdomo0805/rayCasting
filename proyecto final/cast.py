@@ -5,261 +5,217 @@ import math
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
-TRANSPARENT = (0, 0, 0, 0)
+TRANSPARENT_1 = (0, 0, 0, 0)
+TRANSPARENT_2 = (255, 255, 255, 255)
 SKY = (255, 0, 0)
-GROUND = (200, 200, 100)
+Khorne = (153, 0, 0)
+Nurgle = (0, 153, 0)
+Slaanesh = (0, 0, 153)
+Tzeentch = (153, 153, 0)
 
 walls = {
-    "1": pygame.image.load("./proyecto final/assets/wall1.png"),
+    "1": pygame.image.load("./assets/Giygas.jpg"),
+    "2": pygame.image.load("./assets/daemons-of-slaanesh.png"),
+    "3": pygame.image.load("./assets/nurgle.jpg"),
     #"2": pygame.image.load("assets/wall2.png"),
 }
 
-#sprite1 = pygame.image.load("assets/sprite1.png")
-#sprite2 = pygame.image.load("assets/sprite2.png")
-#sprite2 = pygame.image.load("sprite2.png")
-#sprite3 = pygame.image.load("sprite3.png")
-#sprite4 = pygame.image.load("sprite4.png")
+demons = [
+    {
+        "x": 100,
+        "y": 200,
+        "texture": pygame.image.load("./assets/Afrit.png")
+    },
+    {
+        "x": 200,
+        "y": 200,
+        "texture": pygame.image.load("./assets/Afrit.png")
+    },
+    {
+        "x": 300,
+        "y": 200,
+        "texture": pygame.image.load("./assets/Afrit.png")
+    },
+    {
+        "x": 400,
+        "y": 200,
+        "texture": pygame.image.load("./assets/Afrit.png")
+    },
+]
 
-#enemies = [
-#    {
-#        'x': 100,
-#        'y': 100,
-#        'sprite': sprite1
-#        #'speed': 1,
-#        #'direction': 'right'
-#    }, 
-#    {
-#        'x': 200,
-#        'y': 200,
-#        'sprite': sprite1
-#    }
-#]
+
 
 
 class RayCaster(object):
-    def __init__(self, screen):
+    def __init__(self, screen, size):
         pygame.init()
+        self.size = size
         self.screen = screen#pygame.display.set_mode(screen)
         _, _, self.width, self.height = screen.get_rect()
-        self.blocksize = 50
+        self.blocksize = size // 10
         self.map = []
         self.player = {
             'x': 100,
             'y': 100,
-            'angle': 0,
+            'angle': math.pi / 3,
             'fov': math.pi / 3
         }
         self.zbuffer = [-float('inf') for z in range(self.width)]
+        self.clear()
         #self.zbuffer = [-float('inf') for z in range(0, self.width, 2)]
         #self.clear()
 
     def clear(self):
         for x in range(self.width):
             for y in range(self.height):
-                r = int((x / self.width) * 255 if x / self.width < 1 else 1)
-                g = int((y / self.height) * 255 if y / self.height < 1 else 1)
-                b = 0
-                c = (r, g, b)
-                self.point(x, y, c)
+                self.point(x, y, BLACK)
 
     def point(self, x, y, c = WHITE):
         #print(x, y, c)
+        #self.screen.set_at((x, y), c)
         self.screen.set_at((x, y), c)
 
-    def block(self, x, y, w):
-        for i in range(x, x + self.blocksize):
-            for j in range(y, y + self.blocksize):
-                tx = int((i - x) / self.blocksize * w.get_width())
-                ty = int((j - y) / self.blocksize * w.get_height())
-                c = w.get_at((tx, ty))
-                if c != TRANSPARENT:
+    def draw_rectangle(self, x, y, texture):
+        for i in range(x, x + self.blocksize+1):
+            for j in range(y, y + self.blocksize+1):
+                #self.point(i, j, texture)
+                tx = (i - x) * 256 // self.blocksize
+                ty = (j - y) * 256 // self.blocksize
+                c = texture.get_at((tx, ty))
+                self.point(i, j, c)
+
+    def load_map(self, filename):
+        with open(filename) as f:
+            for line in f.readlines():
+                self.map.append(list(line))
+
+
+    def draw_stake(self, x, height, texture, texx = 0):
+        #print("draw_stake")
+        #print(x, height, texture, offset)
+        start = int(self.height // 2 - height // 2)
+        end   = int(self.height // 2 + height // 2)
+        for y in range(start, end):
+            #print(x, y)
+            ty = (y - start) * 256 // height
+            ty = int(ty)
+            #print(ty)
+            c = texture.get_at((texx, ty))
+            self.point(x, y, c)
+
+
+    def draw_enemy(self, enemy):
+        ex = enemy['x'] - self.player['x']
+        ey = enemy['y'] - self.player['y']
+        #print(ex, ey)
+        angle = math.atan2(ey, ex) - self.player['angle']
+
+        dist = (ex * ex + ey * ey)**0.5
+
+        e_size = (self.size // dist) * 100
+
+        x = self.size + (self.size // 2 - e_size // 2) + (angle - self.player['angle'])*self.size / self.player['fov']
+        y = self.height // 2 - e_size // 2
+
+        x, y, e_size = int(x), int(y), int(e_size)
+
+        for i in range(x, x + e_size):
+            for j in range(y, y + e_size):
+                if i < 0 or i >= self.width or j < 0 or j >= self.height:
+                    continue
+                tx = (i - x) * 256 // e_size
+                ty = (j - y) * 256 // e_size
+                c = enemy['texture'].get_at((tx, ty))
+                if c != TRANSPARENT_1 and c != TRANSPARENT_2:
                     self.point(i, j, c)
                 #self.point(i, j, c)
-        #pygame.draw.rect(self.screen, c, (x, y, self.blocksize, self.blocksize), 1)
-
-    def load_map(self, path):
-        with open(path) as f:
-            self.map = [line.strip() for line in f]
-
-    def draw_map(self):
-        for x in range(len(self.map)):
-            for y in range(self.map[x].__len__()):
-                if self.map[x][y] != ' ':
-                    if self.map[x][y] == '\n':
-                        #print(x*50, y*50)
-                        self.block(x * self.blocksize,  y * self.blocksize  , walls[self.map[x][y]])
-                ##wall = self.map[x][y]
-                ##self.block(y * self.blocksize, x * self.blocksize, walls[wall])
-                #if self.map[y // self.blocksize][x // self.blocksize] == ' ':
-                #    self.block(x, y, BLACK)
-        #for i, line in enumerate(self.map):
-        #    for j, c in enumerate(line):
-        #        if c == '1':
-        #            self.block(j * self.blocksize, i * self.blocksize)
-
-    #def draw_sprite(self, sprite):
-    #    sprite_a = math.atan2((sprite['y'] - self.player['y']), (sprite['x'] - self.player['x']))
-#
-    #    sprite_size = int((500 / d) * 40)#el 40 es un valor que se puede cambiar para cambiar el tamaño de los sprites
-#
-    #    sprite_x = int(500 + (sprite_a - self.player['angle']) * 500 / self.player['fov'] + sprite_size / 2)
-    #    sprite_y = int(500/2 - sprite_size / 2)
-    #    
-    #    d = ((self.player[x] - sprite[x]) ** 2 + (self.player[y] - sprite[y]) ** 2) ** 0.5
-    #    
-    #    
-    #    
-    #    for x in range(sprite_x, sprite_x + sprite_size):
-    #        for y in range(sprite_y, sprite_y + sprite_size):
-    #            tx = int((x - sprite_x ) * 128/sprite_size)  #sprite['x'] + x - sprite_x
-    #            ty = int((y - sprite_y)  * 128/sprite_size)   #sprite['y'] - player.y + sprite_size / 2
-    #            c = sprite['sprite'].get_at((tx, ty))
-    #            if c != TRANSPARENT:
-    #                self.point(x, y, c)
-    #            #self.point(x, y, sprite)
-    #    #height = min(600, max(0, 600 / y))
-    #    #top = 300 - height // 2
-    #    #bottom = 300 + height // 2
-    #    #for i in range(top, bottom):
-    #    #    self.point(x, i, sprite)
-
-    def draw_player(self):
-        self.block(self.player['x'], self.player['y'], WHITE)
+        #print(angle)
+        #if angle < -math.pi:
+        #    angle += 2 * math.pi
+        #if angle > math.pi:
+        #    angle -= 2 * math.pi
+        ##print(angle)
+        #if angle > -self.player['fov'] / 2 and angle < self.player['fov'] / 2:
+        #    dist = (ex * ex + ey * ey)**0.5
+        #    #print(dist)
+        #    if dist < self.zbuffer[int(self.width // 2 + angle * self.width // self.player['fov'])]:
+                
 
     
 
     def cast_ray(self, a):
-        d = 0
+        d  = 0
         while True:
             x = self.player['x'] + d * math.cos(a)
             y = self.player['y'] + d * math.sin(a)
-            i = int(y // self.blocksize)
-            j = int(x // self.blocksize)
-            #print(i, j)
-            if self.map[i][j] != ' ':
-                hitx = x - j * self.blocksize
-                hity = y - i * self.blocksize
-
-                if 1 < hitx < self.blocksize - 1:
-                    maxhit = hitx
-                else:
-                    maxhit = hity
-
-                tx = int(maxhit / self.blocksize * walls[self.map[i][j]].get_width())
-
-                return d, self.map[i][j], tx
-                #maxhit = self.blocksize * math.sqrt(2)
-                #if hitx > hity:
-                #    offset = maxhit - hitx
-                #else:
-                #    offset = maxhit - hity
-                #return d + offset, self.map[i][j]
-            self.point(int(x), int(y))
+            #print(x, y)
+            #print(self.map[int(y // self.blocksize)][int(x // self.blocksize)])
+            if self.map[int(y // self.blocksize)][int(x // self.blocksize)] != ' ':
+                hitx = x - int(x // self.blocksize) * self.blocksize
+                hity = y - int(y // self.blocksize) * self.blocksize
+                maxhit = max(hitx, hity)
+                texx = int(256 * (maxhit - hitx) if hitx > hity else 256 * (maxhit - hity))
+                return d, self.map[int(y // self.blocksize)][int(x // self.blocksize)], texx
             d += 1
 
-    def drawStake(self, x, h, tx, texture):
-        #print(x, h, c)
-        #print(x, h, c)
-        y_o = int(self.height / 2 - h / 2)
-        y_f = int(self.height / 2 + h / 2)
-        for y in range(h):
-            #self.point(x, y, c)
-            ty = int((y - y_o) / (y_f - y_o)) 
-            #c = texture.get_at((tx, ty))
-            print(tx, ty)
-            print(walls)
-            print(texture)
-            c = walls[texture].get_at((tx, ty))
-            self.point(x, y, c)
-            
-
-    
-    def move(self, direction, speed=7):
-        if direction == 'forward':
-            self.player['x'] += int(speed * math.cos(self.player['angle']))
-            self.player['y'] += int(speed * math.sin(self.player['angle']))
-        elif direction == 'backward':
-            self.player['x'] -= int(speed * math.cos(self.player['angle']))
-            self.player['y'] -= int(speed * math.sin(self.player['angle']))
-        elif direction == 'right':
-            self.player['angle'] += 0.1
-        elif direction == 'left':
-            self.player['angle'] -= 0.1
-        
-
     def render(self):
-        print(walls)
         self.clear()
-        self.draw_map()
-        #for sprite in sprites:
-        #    self.draw_sprite(sprite)
-        #self.draw_player()
-        for x in range(0, self.width, 2):
-            #a = self.player['angle'] - self.player['fov'] / 2 + x / self.width * self.player['fov']
-            a = self.player['angle'] - self.player['fov'] / 2 + self.player['fov'] * x / self.width
-            d, c, tx = self.cast_ray(a)
-            _x_ = self.width + x
-            cos_ = math.cos(a - self.player['angle'])
-            h = int(500/d * cos_) * self.blocksize
-            #h = self.height / d
-            self.drawStake(x, h, tx, walls[c])
-            #self.zbuffer[x // 2] = d
-        pygame.display.flip()
-    
-    #def cast_ray(self, x, y, angle):
-    #    for i in range(1000):
-    #        dx = math.cos(angle) * i
-    #        dy = math.sin(angle) * i
-    #        ix = i|nt(x + dx)
-    #        iy = int(y + dy)
-    #        try:
-    #            if self.map[iy // self.blocksize][ix // self.blocksize] == '1':
-    #                return i
-    #        except IndexError:
-    #            return i
-    #    return i
+        #print(self.map)
+        #print(self.size)
 
-    #def render(self, player):
-    #    self.screen.fill(BLACK)
-    #    self.draw_map()
-    #    for enemy in enemies:
-    #        self.screen.blit(sprite1, (enemy['x'], enemy['y']))
-    #    self.screen.blit(player.surf, (player.x, player.y))
-    #    pygame.display.flip()
-#
-    #    for i in range(0, self.width, 2):
-    #        angle = player.angle - player.fov / 2 + (i / self.width) * player.fov
-    #        #distance = self.cast_ray(player.x, player.y, angle)
-    #        d, c, tx = self.cast_ray(player.x, player.y, angle)
-    #        self.draw_stripe(i, distance)
-    #    
-    #    for enemy in enemies:
-    #        self.draw_sprite(enemy)
+        #print(self.map[0][10])
+        for x in range(0, self.size, self.blocksize):
+            for y in range(0, self.size, self.blocksize):
+                #print(self.map)
+                #print(x, y)
+                #print((x//self.blocksize)-1, (y// self.blocksize)-1)
+                if self.map[(x//self.blocksize)][(y// self.blocksize)] != ' ':
+                    #print("draw_rectangle", self.map[(x//self.blocksize)-1][(y// self.blocksize)-1])
+                    #self.draw_rectangle(x, y, walls[self.map[y // self.blocksize][x // self.blocksize]])
+                    #print(x, y, self.map[(x//self.blocksize)][(y// self.blocksize)])
+                    self.draw_rectangle(x, y, walls[self.map[(x//self.blocksize)][(y// self.blocksize)]])
+                    #self.draw_rectangle(x, y, walls[self.map[y // self.blocksize][x // self.blocksize]])
+        self.point(self.player['x'], self.player['y'], WHITE)
+
+        for e in range(1, self.size):
+            a = self.player['angle'] - self.player['fov'] / 2 + self.player['fov'] * e / self.size
+            d, c, texx = self.cast_ray(a)
+            #print(d, m)
+            x_v = self.size + e
+            h = self.blocksize * self.size / d
+            #print(x_v, h)
+            self.draw_stake(x_v, h, walls[c], texx)
+
+
+        #for demon in demons:
+        #    self.draw_enemy(demon)
+
+
+    def move(self, dir):
+        if dir == 'right':
+            print(int(10 * math.cos(self.player['angle'])))
+            self.player['x'] += int(10 * math.cos(self.player['angle']))
+        elif dir == 'forward':
+            self.player['y'] += int(10 * math.sin(self.player['angle']))
+        elif dir == 'left':
+            self.player['x'] -= int(10 * math.cos(self.player['angle']))
+        elif dir == 'backward':
+            self.player['y'] -= int(10 * math.sin(self.player['angle']))
+
+
+    def rotate(self, dir):
+        if dir == 'left':
+            self.player['angle'] -= math.pi / 180 * 10
+        elif dir == 'right':
+            self.player['angle'] += math.pi / 180 * 10
+        #print('---------------------------------------------------------------------------------')
+        #pygame.display.flip()
+
+    
+
+
 
 
 
 #pygame.init()
-screen = pygame.display.set_mode((600, 600))
-r = RayCaster(screen)
-#clock = pygame.time.Clock()
-r.load_map('./proyecto final/assets/map.txt')
 
-running = True
-while running:
-    
-    screen.fill(BLACK)
-    r.render()
-
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_w:
-                r.move('forward')
-            if event.key == pygame.K_s:
-                r.move('backward')
-            if event.key == pygame.K_a:
-                r.move('left')
-            if event.key == pygame.K_d:
-                r.move('right')
-    #clock.tick(60)
